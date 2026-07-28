@@ -1,0 +1,188 @@
+// This is your Prisma schema file for resmiin-admin.
+// This is the MASTER schema — resmiin-web mirrors the relevant models.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+  AUTHOR
+  VIEWER
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+  TRASH
+}
+
+enum ActivityAction {
+  LOGIN
+  LOGOUT
+  CREATE_ARTICLE
+  UPDATE_ARTICLE
+  DELETE_ARTICLE
+  PUBLISH_ARTICLE
+  UNPUBLISH_ARTICLE
+  RESTORE_ARTICLE
+  CREATE_CATEGORY
+  UPDATE_CATEGORY
+  DELETE_CATEGORY
+  CREATE_TAG
+  UPDATE_TAG
+  DELETE_TAG
+  UPLOAD_MEDIA
+  DELETE_MEDIA
+  CREATE_USER
+  UPDATE_USER
+  DELETE_USER
+  BACKUP
+  RESTORE
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role          @default(AUTHOR)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  articles     Article[]
+  sessions     Session[]
+  activityLogs ActivityLog[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// CONTENT
+// ============================================================
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  articles    Article[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Tag {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  articles  ArticleTag[]
+  createdAt DateTime     @default(now())
+}
+
+model Article {
+  id                 String        @id @default(cuid())
+  title              String
+  slug               String        @unique
+  excerpt            String?       @db.Text
+  content            String?       @db.Text
+  featuredImage      String?
+  thumbnailImage     String?
+  authorId           String?
+  categoryId         String?
+  status             ArticleStatus @default(DRAFT)
+  featured           Boolean       @default(false)
+  // SEO Fields
+  seoTitle           String?
+  seoDescription     String?       @db.Text
+  focusKeyword       String?
+  canonicalUrl       String?
+  metaRobots         String?       @default("index, follow")
+  metaKeywords       String?
+  // Open Graph
+  ogTitle            String?
+  ogDescription      String?       @db.Text
+  ogImage            String?
+  // Twitter Card
+  twitterTitle       String?
+  twitterDescription String?       @db.Text
+  twitterImage       String?
+  // Schema Markup
+  schemaMarkup       String?       @db.Text
+  // Timestamps
+  publishedAt        DateTime?
+  scheduledAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  // Relations
+  author             User?         @relation(fields: [authorId], references: [id])
+  category           Category?     @relation(fields: [categoryId], references: [id])
+  tags               ArticleTag[]
+}
+
+model ArticleTag {
+  articleId String
+  tagId     String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+}
+
+// ============================================================
+// MEDIA
+// ============================================================
+
+model Media {
+  id         String   @id @default(cuid())
+  fileName   String
+  url        String
+  publicId   String?  // Cloudinary public_id
+  alt        String?
+  caption    String?
+  width      Int?
+  height     Int?
+  size       Int?     // bytes
+  mimeType   String?
+  folder     String?
+  createdAt  DateTime @default(now())
+}
+
+// ============================================================
+// ACTIVITY LOG
+// ============================================================
+
+model ActivityLog {
+  id        String         @id @default(cuid())
+  userId    String?
+  action    ActivityAction
+  target    String?        // e.g. article title, user email
+  targetId  String?
+  details   String?        @db.Text
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime       @default(now())
+  user      User?          @relation(fields: [userId], references: [id])
+}
