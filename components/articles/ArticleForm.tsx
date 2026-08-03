@@ -67,7 +67,10 @@ export default function ArticleForm({ initialData = {}, categories, tags }: Arti
   // SEO
   const [seoTitle, setSeoTitle] = useState(initialData.seoTitle || '');
   const [seoDescription, setSeoDescription] = useState(initialData.seoDescription || '');
-  const [focusKeyword, setFocusKeyword] = useState(initialData.focusKeyword || '');
+  const [focusKeywords, setFocusKeywords] = useState<string[]>(
+    initialData.focusKeyword ? initialData.focusKeyword.split(',').map((k) => k.trim()).filter(Boolean) : []
+  );
+  const [keywordInput, setKeywordInput] = useState('');
   const [canonicalUrl, setCanonicalUrl] = useState(initialData.canonicalUrl || '');
   const [ogTitle, setOgTitle] = useState(initialData.ogTitle || '');
   const [ogDescription, setOgDescription] = useState(initialData.ogDescription || '');
@@ -91,6 +94,48 @@ export default function ArticleForm({ initialData = {}, categories, tags }: Arti
     );
   };
 
+  const handleKeywordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === ',' || e.key === 'Enter') {
+      e.preventDefault();
+      const val = keywordInput.trim();
+      if (val && !focusKeywords.includes(val)) {
+        setFocusKeywords([...focusKeywords, val]);
+      }
+      setKeywordInput('');
+    } else if (e.key === 'Backspace' && !keywordInput && focusKeywords.length > 0) {
+      setFocusKeywords(focusKeywords.slice(0, -1));
+    }
+  };
+
+  const handleRemoveKeyword = (index: number) => {
+    setFocusKeywords(focusKeywords.filter((_, i) => i !== index));
+  };
+
+  const handleKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val.includes(',')) {
+      const parts = val.split(',').map((p) => p.trim()).filter(Boolean);
+      const newKeywords = [...focusKeywords];
+      parts.forEach((p) => {
+        if (!newKeywords.includes(p)) {
+          newKeywords.push(p);
+        }
+      });
+      setFocusKeywords(newKeywords);
+      setKeywordInput('');
+    } else {
+      setKeywordInput(val);
+    }
+  };
+
+  const handleKeywordBlur = () => {
+    const val = keywordInput.trim();
+    if (val && !focusKeywords.includes(val)) {
+      setFocusKeywords([...focusKeywords, val]);
+    }
+    setKeywordInput('');
+  };
+
   const handleSave = async (saveStatus?: string) => {
     setSaving(true);
     setError('');
@@ -99,7 +144,9 @@ export default function ArticleForm({ initialData = {}, categories, tags }: Arti
         title, slug, excerpt, content, featuredImage,
         categoryId: categoryId || null, tagIds: selectedTags,
         status: saveStatus || status, featured,
-        seoTitle, seoDescription, focusKeyword, canonicalUrl,
+        seoTitle, seoDescription,
+        focusKeyword: focusKeywords.join(', '),
+        canonicalUrl,
         ogTitle, ogDescription, ogImage,
         twitterTitle, twitterDescription, twitterImage,
         schemaMarkup,
@@ -130,7 +177,7 @@ export default function ArticleForm({ initialData = {}, categories, tags }: Arti
   const seoChecks = [
     { label: 'SEO Title', status: !seoTitle ? 'bad' : seoTitle.length < 30 ? 'warn' : seoTitle.length > 60 ? 'warn' : 'good', msg: !seoTitle ? 'Belum diisi' : seoTitle.length < 30 ? 'Terlalu pendek (min 30)' : seoTitle.length > 60 ? 'Terlalu panjang (max 60)' : `OK (${seoTitle.length} karakter)` },
     { label: 'SEO Description', status: !seoDescription ? 'bad' : seoDescription.length < 70 ? 'warn' : seoDescription.length > 160 ? 'warn' : 'good', msg: !seoDescription ? 'Belum diisi' : seoDescription.length < 70 ? 'Terlalu pendek (min 70)' : seoDescription.length > 160 ? 'Terlalu panjang (max 160)' : `OK (${seoDescription.length} karakter)` },
-    { label: 'Focus Keyword', status: !focusKeyword ? 'bad' : 'good', msg: !focusKeyword ? 'Belum diisi' : 'OK' },
+    { label: 'Focus Keyword', status: focusKeywords.length === 0 ? 'bad' : 'good', msg: focusKeywords.length === 0 ? 'Belum diisi' : `${focusKeywords.length} kata kunci terisi` },
     { label: 'Canonical URL', status: !canonicalUrl ? 'warn' : 'good', msg: !canonicalUrl ? 'Belum diisi (opsional tapi direkomendasikan)' : 'OK' },
     { label: 'Open Graph', status: !ogTitle || !ogDescription ? 'warn' : 'good', msg: !ogTitle || !ogDescription ? 'OG Title/Description belum lengkap' : 'OK' },
     { label: 'Featured Image', status: !featuredImage ? 'bad' : 'good', msg: !featuredImage ? 'Belum ada gambar utama' : 'OK' },
@@ -284,7 +331,77 @@ export default function ArticleForm({ initialData = {}, categories, tags }: Arti
                   </div>
                   <div className="form-group">
                     <label className="form-label">Focus Keyword</label>
-                    <input className="form-input" value={focusKeyword} onChange={(e) => setFocusKeyword(e.target.value)} placeholder="Kata kunci utama artikel..." />
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '6px',
+                      alignItems: 'center',
+                      padding: '8px 12px',
+                      background: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      minHeight: '42px',
+                      cursor: 'text'
+                    }} onClick={(e) => {
+                      const input = e.currentTarget.querySelector('input');
+                      if (input) input.focus();
+                    }}>
+                      {focusKeywords.map((kw, idx) => (
+                        <div key={idx} style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: '#eff6ff',
+                          color: '#1e40af',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '4px',
+                          padding: '2px 8px',
+                          fontSize: '13px',
+                          fontWeight: 500
+                        }}>
+                          <span>{kw}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveKeyword(idx);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#3b82f6',
+                              cursor: 'pointer',
+                              fontWeight: 'bold',
+                              padding: '0 2px',
+                              fontSize: '11px',
+                              display: 'inline-flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      <input
+                        type="text"
+                        value={keywordInput}
+                        onChange={handleKeywordChange}
+                        onKeyDown={handleKeywordKeyDown}
+                        onBlur={handleKeywordBlur}
+                        placeholder={focusKeywords.length === 0 ? "Masukkan kata kunci, pisahkan dengan koma atau Enter..." : ""}
+                        style={{
+                          flex: 1,
+                          border: 'none',
+                          outline: 'none',
+                          background: 'transparent',
+                          fontSize: '14px',
+                          color: '#1f2937',
+                          minWidth: '120px',
+                          padding: '2px 0'
+                        }}
+                      />
+                    </div>
+                    <div className="form-hint">Tekan <strong>koma (,)</strong> atau <strong>Enter</strong> untuk memisahkan kata kunci</div>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Canonical URL</label>
