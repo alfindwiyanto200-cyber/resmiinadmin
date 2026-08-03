@@ -111,7 +111,7 @@ export default function ArticleForm({ initialData = {}, categories, tags }: Arti
         initialSubcat = bcSchema.itemListElement[3]?.name || '';
       }
 
-      initialUseAuto = !initialData.schemaMarkup.includes('"@id":') || initialData.schemaMarkup.includes('#organization');
+      initialUseAuto = true;
     } catch {
       initialUseAuto = false;
     }
@@ -288,7 +288,7 @@ export default function ArticleForm({ initialData = {}, categories, tags }: Arti
   const getGeneratedJsonLd = () => {
     const list = [];
     if (enableArticleSchema) list.push(articleSchema);
-    if (enableFaqSchema && faqs.length > 0) list.push(faqSchema);
+    if (enableFaqSchema) list.push(faqSchema);
     if (enableBreadcrumbSchema) list.push(breadcrumbSchema);
     if (enableOrgSchema) list.push(orgSchema);
     
