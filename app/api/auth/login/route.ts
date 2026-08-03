@@ -8,19 +8,15 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, password, rememberMe } = body;
 
-    if (!email || !password) {
-      return Response.json({ error: 'Email dan password wajib diisi' }, { status: 400 });
+    if (!email) {
+      return Response.json({ error: 'Email wajib diisi' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return Response.json({ error: 'Email atau password salah' }, { status: 401 });
+      return Response.json({ error: 'Email tidak ditemukan' }, { status: 401 });
     }
 
-    const isValid = await verifyPassword(password, user.password);
-    if (!isValid) {
-      return Response.json({ error: 'Email atau password salah' }, { status: 401 });
-    }
 
     const token = await createSession(user.id, rememberMe);
 

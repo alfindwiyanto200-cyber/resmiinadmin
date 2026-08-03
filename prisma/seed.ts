@@ -7,13 +7,15 @@ async function main() {
 
   // Create Super Admin user
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@resmiin.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Resmiin@2025!';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'Resmiin2026!';
 
   const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: {
+      password: hashedPassword,
+    },
     create: {
       name: 'Super Admin',
       email: adminEmail,
